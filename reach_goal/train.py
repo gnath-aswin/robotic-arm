@@ -18,26 +18,26 @@ from env import ReachEnv
 # -------------------------
 
 CONFIG = {
-    "run_name": "reach_goal/reach_1",
+    "run_name": "reach_goal/reach_thr005_finetune",
 
     "training": {
-        "learning_rate": 3e-4,      # fine-tuning
-        "ent_coef": 0.005,         # reduced exploration
-        "clip_range": 0.15,
+        "learning_rate": 5e-5,      # fine-tuning
+        "ent_coef": 0.000,         # reduced exploration
+        "clip_range": 0.1,
         "n_steps": 1280,
         "batch_size": 128,
-        "total_timesteps": 3000_000 },
+        "total_timesteps": 2000_000 },
 
     "env": {
-        "max_steps": 1000,
+        "max_steps": 500,
         "success_threshold": 0.05
     },
 
     "seed": 42, # ****Most important parameter******
 
     # Load checkpoint if exists
-    "load_model": False,
-    "model_path": "final_model.zip"
+    "load_model": True,
+    "model_path": "reach_goal/reach_1/best_model/best_model.zip"
 }
 
 
@@ -96,11 +96,11 @@ def main():
     # -------------------------
     # LOAD OR CREATE MODEL
     # -------------------------
-    if config["load_model"] and os.path.exists(os.path.join(run_dir,config["model_path"])):
+    if config["load_model"] and os.path.exists(config["model_path"]):
         from stable_baselines3.common.utils import LinearSchedule
         from stable_baselines3.common.logger import configure
         print("Loading existing model...")
-        ppo = PPO.load(os.path.join(run_dir,config["model_path"]), env=env)
+        ppo = PPO.load(config["model_path"], env=env)
 
         # Override params for fine-tuning
         ppo.learning_rate = config["training"]["learning_rate"]

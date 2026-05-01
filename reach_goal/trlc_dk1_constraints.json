@@ -23,7 +23,7 @@
 
   "action": {
     "type": "joint_velocity",
-    "velocity_scale": 0.25,
+    "velocity_scale": 0.4,
     "normalized": true
   },
 
@@ -33,6 +33,6 @@
       "action_penalty_weight": -0.001,
       "precision_exp_scale": 20.0,
       "success_bonus": 50.0,
-      "success_threshold": 0.01
+      "success_threshold": 0.05
   }
 }

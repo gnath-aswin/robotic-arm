@@ -1,0 +1,21 @@
+{
+    "success_rate": 0.35,
+    "success_count": 35,
+    "num_episodes": 100,
+    "final_distance_mean": 0.13394811551948618,
+    "final_distance_median": 0.12455650996034465,
+    "final_distance_std": 0.08671291626970301,
+    "final_distance_min": 0.034038847100464675,
+    "final_distance_max": 0.3566540069342763,
+    "final_distance_percentiles": {
+        "10": 0.04339746220538048,
+        "25": 0.04865097122090895,
+        "50": 0.12455650996034465,
+        "75": 0.19781519895501123,
+        "90": 0.24905356379873356
+    },
+    "episode_reward_mean": -44.52691800530213,
+    "episode_reward_median": -67.36010770045655,
+    "episode_length_mean": 369.06,
+    "episode_length_median": 500.0
+}

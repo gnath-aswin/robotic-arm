@@ -252,13 +252,33 @@ class ReachEnv(gym.Env):
     # Goal
     # ======================================================
 
-    def _sample_goal(self) -> np.ndarray:
-        goal = self.np_random.uniform(
-            low=self.workspace_min,
-            high=self.workspace_max,
-        )
+    # def _sample_goal(self) -> np.ndarray:
+    #     goal = self.np_random.uniform(
+    #         low=self.workspace_min,
+    #         high=self.workspace_max,
+    #     )
+    #
+    #     return goal.astype(np.float64)
 
-        return goal.astype(np.float64)
+    #     Curriculum based sampling goal
+    def _sample_goal(self) -> np.ndarray:
+        ee_pos = self._get_ee_pos()
+
+        radius = 0.12
+
+        for _ in range(100):
+            offset = self.np_random.uniform(
+                low=np.array([-radius, -radius, -radius]),
+                high=np.array([radius, radius, radius]),
+            )
+
+            goal = ee_pos + offset
+            goal = np.clip(goal, self.workspace_min, self.workspace_max)
+
+            if np.linalg.norm(goal - ee_pos) > 0.03:
+                return goal.astype(np.float64)
+
+        return ee_pos.copy()
 
     # ======================================================
     # Robot control
@@ -268,7 +288,7 @@ class ReachEnv(gym.Env):
         return action * self.joint_max_vels * CONFIG["action_scale"]
 
     def _apply_joint_velocity(self, joint_vel_cmd: np.ndarray):
-        self.data.qvel[self.qvel_indices] = joint_vel_cmd
+        self.data.ctrl[:self.num_joints] = joint_vel_cmd
 
     def _enforce_joint_limits(self):
         qpos = self.data.qpos[self.qpos_indices].copy()
