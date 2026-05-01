@@ -1,0 +1,38 @@
+{
+  "joints": {
+    "joint1": {"min": -2.0, "max": 2.0, "max_vel": 5.0},
+    "joint2": {"min": 0.0, "max": 3.0, "max_vel": 5.0},
+    "joint3": {"min": 0.0, "max": 4.5, "max_vel": 5.0},
+    "joint4": {"min": -1.8, "max": 1.5, "max_vel": 20.0},
+    "joint5": {"min": -1.5, "max": 1.5, "max_vel": 20.0},
+    "joint6": {"min": -3.0, "max": 3.0, "max_vel": 20.0}
+  },
+
+  "gripper": {
+    "min": -0.040,
+    "max": 0.000,
+    "max_vel": 0.18,
+    "force": 114
+  },
+
+  "workspace": {
+    "x": [0.25, 0.55],
+    "y": [-0.3, 0.3],
+    "z": [0.2, 0.5]
+  },
+
+  "action": {
+    "type": "joint_velocity",
+    "velocity_scale": 0.25,
+    "normalized": true
+  },
+
+  "reward": {
+      "distance_weight": -1.0,
+      "progress_weight": 2.0,
+      "action_penalty_weight": -0.001,
+      "precision_exp_scale": 20.0,
+      "success_bonus": 50.0,
+      "success_threshold": 0.01
+  }
+}

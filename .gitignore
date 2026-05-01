@@ -1,0 +1,99 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+mujoco/
+*.conda
+
+# -------------------------
+# IDE / editor
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+tb/
+tensorboard/
+*.log
+
+# -------------------------
+# RL experiment outputs
+# -------------------------
+runs/
+experiments/
+models/
+checkpoints/
+best_model/
+final_model.zip
+*.zip
+
+# Stable-Baselines3 / Monitor files
+monitor.csv
+*.monitor.csv
+
+# -------------------------
+# Tracking
+# -------------------------
+wandb/
+mlruns/
+
+# -------------------------
+# Large generated data
+# -------------------------
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+
+# -------------------------
+# MuJoCo generated / temporary
+# -------------------------
+*.mjb
+*.obj
+*.urdf.bak
+
+# -------------------------
+# Keep robot assets tracked
+# -------------------------
+!robot/meshes/
+!robot/meshes/**
+
+# -------------------------
+# Local configs / secrets
+# -------------------------
+.config/
+.env
+.env.*
+local_config.json
+secrets.json
+
+# -------------------------
+# OS files
+# -------------------------
+Thumbs.db
+desktop.ini

@@ -1,0 +1,18 @@
+{
+    "run_name": "reach_goal/reach_0",
+    "training": {
+        "learning_rate": 0.0004,
+        "ent_coef": 0.005,
+        "clip_range": 0.2,
+        "n_steps": 1280,
+        "batch_size": 128,
+        "total_timesteps": 5000000
+    },
+    "env": {
+        "max_steps": 500,
+        "success_threshold": 0.05
+    },
+    "seed": 42,
+    "load_model": false,
+    "model_path": "final_model.zip"
+}

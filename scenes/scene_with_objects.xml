@@ -1,0 +1,31 @@
+<mujoco model="grid_world">
+
+    <!-- include robot -->
+    <include file="robot.xml"/>
+    <option impratio="10" noslip_iterations="2"/>     <!-- Prevent slipping -->
+
+    <asset>
+    <!-- World asset -->
+        <!-- Sky -->
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+        <!-- Ground -->
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+        markrgb="0.8 0.8 0.8" width="300" height="300"/>
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    </asset>
+
+    <worldbody>
+        <geom type="plane" size="3 3 0.1" material="groundplane"/>
+
+        <light pos="0 0 3" dir="0 0 -1"/>
+        <light pos="2 2 2" dir="-1 -1 -1"/>
+
+        <!-- Cube -->
+        <body name="cube" pos="0.4 0.0 0.0">
+            <joint type="free"/>
+            <geom name= "cube" type="box" size="0.03 0.03 0.03" rgba="1 0 0 1" mass="0.05" friction="1 0.1 0.1"/>
+        </body>
+        
+    </worldbody>
+
+</mujoco>
