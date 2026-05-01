@@ -18,15 +18,15 @@ from env import ReachEnv
 # -------------------------
 
 CONFIG = {
-    "run_name": "reach_goal/reach_thr005_finetune",
+    "run_name": "reach_goal/reach_thr005_goalsamplerad025",
 
     "training": {
-        "learning_rate": 5e-5,      # fine-tuning
+        "learning_rate": 2e-5,      # fine-tuning
         "ent_coef": 0.000,         # reduced exploration
         "clip_range": 0.1,
         "n_steps": 1280,
         "batch_size": 128,
-        "total_timesteps": 2000_000 },
+        "total_timesteps": 1000_000 },
 
     "env": {
         "max_steps": 500,
@@ -37,7 +37,7 @@ CONFIG = {
 
     # Load checkpoint if exists
     "load_model": True,
-    "model_path": "reach_goal/reach_1/best_model/best_model.zip"
+    "model_path": "reach_goal/reach_thr005_goalsamplerad012/best_model/best_model.zip"
 }
 
 

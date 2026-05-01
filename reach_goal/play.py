@@ -13,9 +13,9 @@ from stable_baselines3 import PPO
 from env import ReachEnv
 
 
-MODEL_XML_PATH = "scene.xml"
+MODEL_XML_PATH = "scenes/scene.xml"
 POLICY_PATH = (
-    "/home/void/custom_robot/reach_goal/reach_1/best_model/"
+    "/home/void/custom_robot/reach_goal/reach_thr005_goalsamplerad025/best_model/"
     "best_model"
 )
 

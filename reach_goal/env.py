@@ -27,13 +27,14 @@ class ReachEnv(gym.Env):
     Observation:
         ee_pos      : 3
         ee_vel      : 3
+        abs_goal    : 3
         rel_goal    : 3
         distance    : 1
         qpos        : num_joints
         qvel        : num_joints
 
         For 6 joints:
-            obs_dim = 3 + 3 + 3 + 1 + 6 + 6 = 22
+            obs_dim = 3 + 3 + 3 + 3 + 1 + 6 + 6 = 22
     """
 
     metadata = {"render_modes": []}
@@ -97,7 +98,7 @@ class ReachEnv(gym.Env):
         # --------------------------------------------------
         # Observation space
         # --------------------------------------------------
-        obs_dim = 3 + 3 + 3 + 1 + self.num_joints + self.num_joints
+        obs_dim = 3 + 3 + 3 + 3 + 1 + self.num_joints + self.num_joints
 
         self.observation_space = spaces.Box(
             low=-np.inf,
@@ -183,7 +184,8 @@ class ReachEnv(gym.Env):
         ee_pos = self._get_ee_pos()
         ee_vel = self._get_ee_linear_velocity()
 
-        rel_goal = self.goal - ee_pos
+        goal = self.goal
+        rel_goal = goal - ee_pos
         distance = np.linalg.norm(rel_goal)
 
         qpos = self.data.qpos[self.qpos_indices]
@@ -193,6 +195,7 @@ class ReachEnv(gym.Env):
             [
                 ee_pos,
                 ee_vel,
+                goal,
                 rel_goal,
                 np.array([distance], dtype=np.float64),
                 qpos,
