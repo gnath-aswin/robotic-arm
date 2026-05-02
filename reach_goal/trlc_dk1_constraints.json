@@ -32,7 +32,7 @@
       "progress_weight": 2.0,
       "action_penalty_weight": -0.001,
       "precision_exp_scale": 20.0,
-      "lateral_progress_weight": 2.0,
+      "base_angle_progression_weight": 2.0,
       "success_bonus": 50.0,
       "success_threshold": 0.05
   }

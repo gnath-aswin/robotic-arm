@@ -124,7 +124,7 @@ class ReachEnv(gym.Env):
 
         self.step_count = 0
         self.prev_distance = None
-        self.prev_lateral_error = None
+        self.prev_base_angle_error = None
 
         # self._reset_robot_to_mid_joint_configuration()
         self._freeze_gripper_open()
@@ -235,16 +235,16 @@ class ReachEnv(gym.Env):
         reward_action = cfg["action_penalty_weight"] * np.linalg.norm(action)
         reward_precision = np.exp(-cfg["precision_exp_scale"] * distance)
 
-        # Reward for lateral movement -Viz shows it does not learn lateral movement.
-        goal = self.goal
-        ee_pos = self._get_ee_pos()
-        rel_goal = goal - ee_pos
-        lateral_error = abs(rel_goal[1])
-        if self.prev_lateral_error is None:
-            self.prev_lateral_error = lateral_error
-        lateral_progress = self.prev_lateral_error - lateral_error
-        reward_lateral_progress = cfg["lateral_progress_weight"] * lateral_progress
-        self.prev_lateral_error = lateral_error
+        # Reward promoting base/joint1 movement -Viz shows it does not learn to rotate base.
+        base_angle_error = abs(self._get_base_angle_error())
+        if self.prev_base_angle_error is None:
+            self.prev_base_angle_error = base_angle_error
+        base_angle_progress = self.prev_base_angle_error - base_angle_error
+        reward_base_angle_progress = (
+            cfg.get("base_angle_progress_weight", 1.0)
+            * base_angle_progress
+        )
+        self.prev_base_angle_error = base_angle_error
         
         # Success reward
         reward_success = 0.0
@@ -254,7 +254,7 @@ class ReachEnv(gym.Env):
         reward = (
             reward_distance
             + reward_progress
-            + reward_lateral_progress
+            + reward_base_angle_progress
             + reward_action
             + reward_precision
             + reward_success
@@ -272,6 +272,15 @@ class ReachEnv(gym.Env):
         }
 
         return float(reward), reward_info
+
+    def _get_base_angle_error(self) -> float:
+        assert self.goal is not None
+
+        goal_angle = np.arctan2(self.goal[1], self.goal[0])
+        joint1_angle = self.data.qpos[self.qpos_indices[0]]
+        angle = goal_angle - joint1_angle
+
+        return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
     # ======================================================
     # Goal
