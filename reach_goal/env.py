@@ -341,7 +341,14 @@ class ReachEnv(gym.Env):
     # ======================================================
 
     def _scale_action_to_joint_velocity(self, action: np.ndarray) -> np.ndarray:
-        return action * self.joint_max_vels * CONFIG["action_scale"]
+        action_scale = CONFIG["action_scale"]
+
+        joint_scale = np.array(
+            [1.0, 0.6, 0.6, 0.35, 0.35, 0.35],
+            dtype=np.float64,
+        )
+
+        return action * self.joint_max_vels * action_scale * joint_scale
 
     def _apply_joint_velocity(self, joint_vel_cmd: np.ndarray):
         self.data.ctrl[:self.num_joints] = joint_vel_cmd
