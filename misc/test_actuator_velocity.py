@@ -21,7 +21,7 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
         data.ctrl[:] = 0.0
 
         # Move only joint1 slowly
-        data.ctrl[1] = 0.5
+        data.ctrl[0] = -0.5
 
         # Keep gripper open/frozen
         data.ctrl[6:8] = 0.0
@@ -38,5 +38,5 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             )
 
         viewer.sync()
-        time.sleep(0.01)
+        time.sleep(0.001)
         step += 1

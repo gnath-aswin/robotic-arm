@@ -18,11 +18,11 @@ from env import ReachEnv
 # -------------------------
 
 CONFIG = {
-    "run_name": "reach_goal/reach_thr005_goalsamplerad025",
+    "run_name": "reach_goal/obs26/r030_thr005_finetune",
 
     "training": {
-        "learning_rate": 2e-5,      # fine-tuning
-        "ent_coef": 0.000,         # reduced exploration
+        "learning_rate": 3e-5,      # fine-tuning
+        "ent_coef": 0.0005,         # reduced exploration
         "clip_range": 0.1,
         "n_steps": 1280,
         "batch_size": 128,
@@ -30,14 +30,17 @@ CONFIG = {
 
     "env": {
         "max_steps": 500,
-        "success_threshold": 0.05
+        "success_threshold": 0.05,
+        "goal_radius": 0.30,
+        "min_goal_distance": 0.08,
+        "min_lateral_distance" : 0.08
     },
 
     "seed": 42, # ****Most important parameter******
 
     # Load checkpoint if exists
     "load_model": True,
-    "model_path": "reach_goal/reach_thr005_goalsamplerad012/best_model/best_model.zip"
+    "model_path": "reach_goal/obs26/r030_thr005/best_model/best_model.zip"
 }
 
 
@@ -74,10 +77,16 @@ def main():
 
     env = ReachEnv(model)
     env.max_steps = config["env"]["max_steps"]
+    env.success_threshold = config["env"]["success_threshold"]
+    env.min_goal_distance = config["env"]["min_goal_distance"]
+    env.min_lateral_distance = config["env"]["min_goal_distance"]
     env = Monitor(env)
 
     eval_env = ReachEnv(model)
     eval_env.max_steps = config["env"]["max_steps"]
+    eval_env.success_threshold = config["env"]["success_threshold"]
+    eval_env.min_goal_distance = config["env"]["min_goal_distance"]
+    eval_env.min_lateral_distance = config["env"]["min_goal_distance"]
     eval_env = Monitor(eval_env)
 
     # -------------------------
@@ -100,7 +109,7 @@ def main():
         from stable_baselines3.common.utils import LinearSchedule
         from stable_baselines3.common.logger import configure
         print("Loading existing model...")
-        ppo = PPO.load(config["model_path"], env=env)
+        ppo = PPO.load(config["model_path"], env=env, device='cpu')
 
         # Override params for fine-tuning
         ppo.learning_rate = config["training"]["learning_rate"]

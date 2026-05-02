@@ -1,0 +1,18 @@
+{
+    "run_name": "reach_goal/obs26/r030_thr005_finetune",
+    "training": {
+        "learning_rate": 3e-05,
+        "ent_coef": 0.0005,
+        "clip_range": 0.1,
+        "n_steps": 1280,
+        "batch_size": 128,
+        "total_timesteps": 1000000
+    },
+    "env": {
+        "max_steps": 500,
+        "success_threshold": 0.05
+    },
+    "seed": 42,
+    "load_model": true,
+    "model_path": "reach_goal/obs26/r030_thr005/best_model/best_model.zip"
+}

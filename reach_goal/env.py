@@ -34,7 +34,7 @@ class ReachEnv(gym.Env):
         qvel        : num_joints
 
         For 6 joints:
-            obs_dim = 3 + 3 + 3 + 3 + 1 + 6 + 6 = 22
+            obs_dim = 3 + 3 + 3 + 3 + 1 + 6 + 6 = 25
     """
 
     metadata = {"render_modes": []}
@@ -107,6 +107,13 @@ class ReachEnv(gym.Env):
             dtype=np.float32,
         )
 
+        # --------------------------------------------------
+        # Sampling space
+        # --------------------------------------------------
+        self.goal_radius = 0.30
+        self.min_goal_distance = 0.08
+        self.min_lateral_distance = 0.08
+
     def reset(self, *, seed: int | None = None): 
         super().reset(seed=seed)
 
@@ -117,6 +124,7 @@ class ReachEnv(gym.Env):
 
         self.step_count = 0
         self.prev_distance = None
+        self.prev_lateral_error = None
 
         # self._reset_robot_to_mid_joint_configuration()
         self._freeze_gripper_open()
@@ -216,6 +224,7 @@ class ReachEnv(gym.Env):
     ) -> tuple[float, dict[str, float]]:
         cfg = self.reward_cfg
 
+        # Distance based reward
         if self.prev_distance is None:
             self.prev_distance = distance
 
@@ -226,6 +235,18 @@ class ReachEnv(gym.Env):
         reward_action = cfg["action_penalty_weight"] * np.linalg.norm(action)
         reward_precision = np.exp(-cfg["precision_exp_scale"] * distance)
 
+        # Reward for lateral movement -Viz shows it does not learn lateral movement.
+        goal = self.goal
+        ee_pos = self._get_ee_pos()
+        rel_goal = goal - ee_pos
+        lateral_error = abs(rel_goal[1])
+        if self.prev_lateral_error is None:
+            self.prev_lateral_error = lateral_error
+        lateral_progress = self.prev_lateral_error - lateral_error
+        reward_lateral_progress = cfg["lateral_progress_weight"] * lateral_progress
+        self.prev_lateral_error = lateral_error
+        
+        # Success reward
         reward_success = 0.0
         if distance < self.success_threshold:
             reward_success = cfg["success_bonus"]
@@ -233,6 +254,7 @@ class ReachEnv(gym.Env):
         reward = (
             reward_distance
             + reward_progress
+            + reward_lateral_progress
             + reward_action
             + reward_precision
             + reward_success
@@ -264,10 +286,31 @@ class ReachEnv(gym.Env):
     #     return goal.astype(np.float64)
 
     #     Curriculum based sampling goal
+
+    # def _sample_goal(self) -> np.ndarray:
+    #     ee_pos = self._get_ee_pos()
+    #
+    #     radius = 0.30
+    #
+    #     for _ in range(100):
+    #         offset = self.np_random.uniform(
+    #             low=np.array([-radius, -radius, -radius]),
+    #             high=np.array([radius, radius, radius]),
+    #         )
+    #
+    #         goal = ee_pos + offset
+    #         goal = np.clip(goal, self.workspace_min, self.workspace_max)
+    #
+    #         if np.linalg.norm(goal - ee_pos) > 0.07:
+    #             return goal.astype(np.float64)
+    #
+    #     return ee_pos.copy()
     def _sample_goal(self) -> np.ndarray:
         ee_pos = self._get_ee_pos()
 
-        radius = 0.12
+        radius = getattr(self, "goal_radius", 0.30)
+        min_goal_distance = getattr(self, "min_goal_distance", 0.07)
+        min_abs_y_offset = getattr(self, "min_lateral_distance", 0.08)
 
         for _ in range(100):
             offset = self.np_random.uniform(
@@ -275,13 +318,23 @@ class ReachEnv(gym.Env):
                 high=np.array([radius, radius, radius]),
             )
 
+            # 50% of episodes: force meaningful left/right displacement
+            if self.np_random.random() < 0.5:
+                sign = self.np_random.choice([-1.0, 1.0])
+                offset[1] = sign * self.np_random.uniform(min_abs_y_offset, radius)
+
             goal = ee_pos + offset
             goal = np.clip(goal, self.workspace_min, self.workspace_max)
 
-            if np.linalg.norm(goal - ee_pos) > 0.03:
+            if np.linalg.norm(goal - ee_pos) > min_goal_distance:
                 return goal.astype(np.float64)
 
-        return ee_pos.copy()
+        # fallback: non-trivial workspace goal
+        goal = self.np_random.uniform(
+            low=self.workspace_min,
+            high=self.workspace_max,
+        )
+        return goal.astype(np.float64)
 
     # ======================================================
     # Robot control
@@ -397,7 +450,7 @@ def main():
     random.seed(seed)
     torch.manual_seed(seed)
 
-    model = mujoco.MjModel.from_xml_path("scene.xml")
+    model = mujoco.MjModel.from_xml_path("scenes/scene.xml")
     env = ReachEnv(model, seed=seed)
     env = Monitor(env)
 
@@ -415,7 +468,7 @@ def main():
         device="cpu"
     )
 
-    ppo.learn(total_timesteps=200_000)
+    ppo.learn(total_timesteps=2000)
     ppo.save("ppo_reach")
 
 if __name__ == "__main__":
