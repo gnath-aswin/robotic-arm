@@ -22,18 +22,18 @@
   },
 
   "action": {
-    "type": "joint_velocity",
-    "velocity_scale": 0.4,
+    "type": "joint_position_delta",
+    "delta_scale":[0.03, 0.03, 0.03, 0.05, 0.05, 0.05],
     "normalized": true
   },
 
   "reward": {
-      "distance_weight": -1.0,
-      "progress_weight": 5.0,
-      "action_penalty_weight": -0.001,
-      "precision_exp_scale": 8.0,
-      "base_angle_progression_weight": 12.0,
-      "success_bonus": 75.0,
-      "success_threshold": 0.05
+    "distance_weight": -1.0,
+    "progress_weight": 5.0,
+    "action_penalty_weight": -0.001,
+    "precision_weight": 8.0,
+    "precision_exp_scale": 35.0,
+    "success_bonus": 75.0,
+    "success_threshold": 0.05
   }
 }

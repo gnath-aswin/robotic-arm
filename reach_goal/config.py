@@ -1,4 +1,3 @@
-# config.py
 import json
 from pathlib import Path
 import numpy as np
@@ -7,6 +6,7 @@ CONFIG_PATH = Path(__file__).parent / "trlc_dk1_constraints.json"
 
 with open(CONFIG_PATH, "r") as f:
     _cfg = json.load(f)
+
 
 # ------------------------
 # Joint limits
@@ -60,8 +60,24 @@ workspace_max = np.array(
 # ------------------------
 
 raw_action_cfg = _cfg.get("action", {})
-action_scale = _cfg.get("velocity_scale", 0.25)
-action_type = raw_action_cfg.get("type", "joint_velocity")
+
+action_type = raw_action_cfg.get("type", "joint_position_delta")
+action_normalized = raw_action_cfg.get("normalized", True)
+
+delta_scale = np.array(
+    raw_action_cfg.get(
+        "delta_scale",
+        [0.03, 0.03, 0.03, 0.05, 0.05, 0.05],
+    ),
+    dtype=np.float64,
+)
+
+if delta_scale.shape != (num_joints,):
+    raise ValueError(
+        f"delta_scale must have shape ({num_joints},), "
+        f"but got {delta_scale.shape}"
+    )
+
 
 # ------------------------
 # Gripper
@@ -84,13 +100,18 @@ reward = _cfg.get("reward", {})
 CONFIG = {
     "joint_names": joint_names,
     "num_joints": num_joints,
+
     "joint_mins": joint_mins,
     "joint_maxs": joint_maxs,
     "joint_max_vels": joint_max_vels,
+
     "workspace_min": workspace_min,
     "workspace_max": workspace_max,
+
     "action_type": action_type,
-    "action_scale": action_scale,
+    "action_normalized": action_normalized,
+    "delta_scale": delta_scale,
+
     "gripper": gripper,
     "reward": reward,
 }

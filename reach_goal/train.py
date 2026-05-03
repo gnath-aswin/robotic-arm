@@ -18,11 +18,11 @@ from env import ReachEnv
 # -------------------------
 
 CONFIG = {
-    "run_name": "reach_goal/obs26/r020_thr005_finetune",
+    "run_name": "reach_goal/delta_pos/obs25/r020_thr005_scratch",
 
     "training": {
-        "learning_rate": 5e-5,      # fine-tuning
-        "ent_coef": 0.0005,         # reduced exploration
+        "learning_rate": 4e-4,      # fine-tuning
+        "ent_coef": 0.001,         # reduced exploration
         "clip_range": 0.1,
         "target_kl": 0.015,
         "n_steps": 1280,
@@ -32,16 +32,15 @@ CONFIG = {
     "env": {
         "max_steps": 500,
         "success_threshold": 0.05,
-        "goal_radius": 1,
+        "goal_radius": 0.20,
         "min_goal_distance": 0.08,
-        "min_lateral_distance" : 0.04
     },
 
     "seed": 42, # ****Most important parameter******
 
     # Load checkpoint if exists
-    "load_model": True,
-    "model_path": "reach_goal/obs26/r020_thr005_finetune/best_model/best_model.zip"
+    "load_model": False,
+    "model_path": ""
 }
 
 
@@ -79,13 +78,14 @@ def main():
     env = ReachEnv(model)
     env.max_steps = config["env"]["max_steps"]
     env.success_threshold = config["env"]["success_threshold"]
+    env.goal_radius = config["env"]["goal_radius"]
     env.min_goal_distance = config["env"]["min_goal_distance"]
-    env.min_lateral_distance = config["env"]["min_goal_distance"]
     env = Monitor(env)
 
     eval_env = ReachEnv(model)
     eval_env.max_steps = config["env"]["max_steps"]
     eval_env.success_threshold = config["env"]["success_threshold"]
+    eval_env.goal_radius = config["env"]["goal_radius"]
     eval_env.min_goal_distance = config["env"]["min_goal_distance"]
     eval_env.min_lateral_distance = config["env"]["min_goal_distance"]
     eval_env = Monitor(eval_env)

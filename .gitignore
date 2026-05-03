@@ -44,6 +44,7 @@ experiments/
 models/
 checkpoints/
 best_model/
+velocity_control/
 final_model.zip
 *.zip
 

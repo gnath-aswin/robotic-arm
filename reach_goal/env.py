@@ -11,18 +11,18 @@ from config import CONFIG
 
 class ReachEnv(gym.Env):
     """
-    MuJoCo reaching environment using joint-velocity control.
-
-    Task:
-        Move the robot end-effector body "tool0" to a sampled 3D goal.
+    MuJoCo reaching environment using joint position delta control.
 
     Action:
-        The policy outputs normalized joint velocities.
+        The policy outputs normalized joint position deltas.
 
         action[i] in [-1, 1]
 
         Internally:
-            qvel[i] = action[i] * joint_max_vels[i]
+            q_target[i] = q_current[i] + action[i] * delta_scale[i]
+            ctrl[i] = q_target[i]
+
+        MuJoCo position actuators track q_target.
 
     Observation:
         ee_pos      : 3
@@ -61,7 +61,7 @@ class ReachEnv(gym.Env):
 
         self.joint_mins = CONFIG["joint_mins"].astype(np.float64)
         self.joint_maxs = CONFIG["joint_maxs"].astype(np.float64)
-        self.joint_max_vels = CONFIG["joint_max_vels"].astype(np.float64)
+        self.delta_scale = CONFIG["delta_scale"].astype(np.float64)
 
         self.workspace_min = CONFIG["workspace_min"].astype(np.float64)
         self.workspace_max = CONFIG["workspace_max"].astype(np.float64)
@@ -71,7 +71,7 @@ class ReachEnv(gym.Env):
         # These can be overwritten from your training config:
         # env.success_threshold = config["env"]["success_threshold"]
         self.max_steps = 500
-        self.success_threshold = self.reward_cfg.get("success_threshold", 0.01)
+        self.success_threshold = self.reward_cfg.get("success_threshold", 0.02)
 
         self.goal: np.ndarray | None = None
         self.prev_distance: float | None = None
@@ -109,10 +109,10 @@ class ReachEnv(gym.Env):
 
         # --------------------------------------------------
         # Sampling space
-        # --------------------------------------------------
         self.goal_radius = 0.20
         self.min_goal_distance = 0.08
-        self.min_lateral_distance = 0.08
+        # --------------------------------------------------
+
 
     def reset(self, *, seed: int | None = None): 
         super().reset(seed=seed)
@@ -124,18 +124,26 @@ class ReachEnv(gym.Env):
 
         self.step_count = 0
         self.prev_distance = None
-        self.prev_base_angle_error = None
 
+        # Optional custom reset
         # self._reset_robot_to_mid_joint_configuration()
+
+        # For position control, initialize actuator targets
+        # to the current joint positions.
+        self.data.ctrl[0:6] = self.data.qpos[0:6].copy()
+
         self._freeze_gripper_open()
+
         mujoco.mj_forward(self.model, self.data)
 
         self.goal = self._sample_goal()
 
-        obs = self._get_obs()
-
         ee_pos = self._get_ee_pos()
         distance = self._compute_distance(ee_pos)
+
+        self.prev_distance = distance
+
+        obs = self._get_obs()
 
         info = {
             "goal": self.goal.copy(),
@@ -144,18 +152,40 @@ class ReachEnv(gym.Env):
         }
 
         return obs, info
-
+ 
     def step(self, action):
         action = np.asarray(action, dtype=np.float64)
         action = np.clip(action, -1.0, 1.0)
 
-        joint_vel_cmd = self._scale_action_to_joint_velocity(action)
+        # ------------------------
+        # Joint position delta control
+        # ------------------------
+        q_current = self.data.qpos[0:6].copy()
 
-        self._apply_joint_velocity(joint_vel_cmd)
+        q_target = q_current + action * self.delta_scale
+        q_target = np.clip(
+            q_target,
+            self.joint_mins,
+            self.joint_maxs,
+        )
+
+        # For MuJoCo position actuators:
+        # ctrl[0:6] are target joint positions, not velocities.
+        self.data.ctrl[0:6] = q_target
+
+        # Keep gripper fixed/open.
         self._freeze_gripper_open()
+
         mujoco.mj_step(self.model, self.data)
+
+        # Keep gripper frozen after physics step too.
+        self._freeze_gripper_open()
+
         self.step_count += 1
 
+        # Optional safety clamp.
+        # With position actuators + clipped q_target, this should rarely be needed,
+        # but it is okay to keep during debugging.
         self._enforce_joint_limits()
 
         ee_pos = self._get_ee_pos()
@@ -176,6 +206,9 @@ class ReachEnv(gym.Env):
             "is_success": terminated,
             "goal": self.goal.copy(),
             "ee_pos": ee_pos.copy(),
+            "q_current": q_current.copy(),
+            "q_target": q_target.copy(),
+            "q_actual": self.data.qpos[0:6].copy(),
             "step_count": self.step_count,
             **reward_info,
         }
@@ -224,7 +257,6 @@ class ReachEnv(gym.Env):
     ) -> tuple[float, dict[str, float]]:
         cfg = self.reward_cfg
 
-        # Distance based reward
         if self.prev_distance is None:
             self.prev_distance = distance
 
@@ -233,28 +265,22 @@ class ReachEnv(gym.Env):
         reward_distance = cfg["distance_weight"] * distance
         reward_progress = cfg["progress_weight"] * progress
         reward_action = cfg["action_penalty_weight"] * np.linalg.norm(action)
-        reward_precision = np.exp(-cfg["precision_exp_scale"] * distance)
 
-        # Reward promoting base/joint1 movement -Viz shows it does not learn to rotate base.
-        # base_angle_error = abs(self._get_base_angle_error())
-        # if self.prev_base_angle_error is None:
-        #     self.prev_base_angle_error = base_angle_error
-        # base_angle_progress = self.prev_base_angle_error - base_angle_error
-        # reward_base_angle_progress = cfg["base_angle_progress_weight"] * base_angle_progress
-        # self.prev_base_angle_error = base_angle_error
-        #
-        # Success reward
+        reward_precision = (
+            cfg.get("precision_weight", 1.0)
+            * np.exp(-cfg["precision_exp_scale"] * distance)
+        )
+
         reward_success = 0.0
         if distance < self.success_threshold:
             reward_success = cfg["success_bonus"]
 
         reward = (
             reward_distance
-                + reward_progress
-                # + reward_base_angle_progress
-                + reward_action
-                + reward_precision
-                + reward_success
+            + reward_progress
+            + reward_action
+            + reward_precision
+            + reward_success
         )
 
         self.prev_distance = distance
@@ -270,33 +296,15 @@ class ReachEnv(gym.Env):
 
         return float(reward), reward_info
 
-    def _get_base_angle_error(self) -> float:
-        assert self.goal is not None
-
-        goal_angle = np.arctan2(self.goal[1], self.goal[0])
-        joint1_angle = self.data.qpos[self.qpos_indices[0]]
-        angle = goal_angle - joint1_angle
-
-        return (angle + np.pi) % (2.0 * np.pi) - np.pi
-
     # ======================================================
     # Goal
     # ======================================================
 
-    # def _sample_goal(self) -> np.ndarray:
-    #     goal = self.np_random.uniform(
-    #         low=self.workspace_min,
-    #         high=self.workspace_max,
-    #     )
-    #
-    #     return goal.astype(np.float64)
-
-    #     Curriculum based sampling goal
-
     def _sample_goal(self) -> np.ndarray:
         ee_pos = self._get_ee_pos()
 
-        radius = 0.20
+        radius = self.goal_radius
+        min_goal_distance = self.min_goal_distance
 
         for _ in range(100):
             offset = self.np_random.uniform(
@@ -307,60 +315,23 @@ class ReachEnv(gym.Env):
             goal = ee_pos + offset
             goal = np.clip(goal, self.workspace_min, self.workspace_max)
 
-            if np.linalg.norm(goal - ee_pos) > 0.07:
+            if np.linalg.norm(goal - ee_pos) > min_goal_distance:
                 return goal.astype(np.float64)
 
-        return ee_pos.copy()
+        for _ in range(100):
+            goal = self.np_random.uniform(
+                low=self.workspace_min,
+                high=self.workspace_max,
+            )
 
-    # def _sample_goal(self) -> np.ndarray:
-    #     ee_pos = self._get_ee_pos()
-    #
-    #     radius = self.goal_radius 
-    #     min_goal_distance = self.min_goal_distance
-    #     min_abs_y_offset = self.min_lateral_distance
-    #
-    #     for _ in range(100):
-    #         offset = self.np_random.uniform(
-    #             low=np.array([-radius, -radius, -radius]),
-    #             high=np.array([radius, radius, radius]),
-    #         )
-    #
-    #         # 50% of episodes: force meaningful left/right displacement
-    #         if self.np_random.random() < 0.5:
-    #             sign = self.np_random.choice([-1.0, 1.0])
-    #             offset[1] = sign * self.np_random.uniform(min_abs_y_offset, radius)
-    #
-    #         goal = ee_pos + offset
-    #         goal = np.clip(goal, self.workspace_min, self.workspace_max)
-    #
-    #         if np.linalg.norm(goal - ee_pos) > min_goal_distance:
-    #             return goal.astype(np.float64)
-    #
-    #     # fallback: non-trivial workspace goal
-    #     goal = self.np_random.uniform(
-    #         low=self.workspace_min,
-    #         high=self.workspace_max,
-    #     )
-    #     return goal.astype(np.float64)
+            if np.linalg.norm(goal - ee_pos) > min_goal_distance:
+                return goal.astype(np.float64)
+
+        return self.workspace_max.astype(np.float64)
 
     # ======================================================
     # Robot control
     # ======================================================
-
-    def _scale_action_to_joint_velocity(self, action: np.ndarray) -> np.ndarray:
-        # action_scale = CONFIG["action_scale"]
-        #
-        # joint_scale = np.array(
-        #     [1.0, 0.6, 0.6, 0.35, 0.35, 0.35],
-        #     dtype=np.float64,
-        # )
-        #
-        # return action * self.joint_max_vels * action_scale * joint_scale
-        ctrl_limit = np.array([2.0, 1.2, 1.2, 2.8, 2.8, 2.8], dtype=np.float64)
-        return action * ctrl_limit
-
-    def _apply_joint_velocity(self, joint_vel_cmd: np.ndarray):
-        self.data.ctrl[:self.num_joints] = joint_vel_cmd
 
     def _enforce_joint_limits(self):
         qpos = self.data.qpos[self.qpos_indices].copy()
