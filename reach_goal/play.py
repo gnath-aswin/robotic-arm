@@ -15,13 +15,12 @@ from env import ReachEnv
 
 MODEL_XML_PATH = "scenes/scene.xml"
 POLICY_PATH = (
-    "/home/void/custom_robot/reach_goal/obs26/r030_thr005_finetune/best_model/"
+    "/home/void/custom_robot/reach_goal/obs26/r020_thr005_finetune/best_model/"
     "best_model"
 )
 
-MAX_STEPS = 500
+MAX_STEPS = 400
 SUCCESS_THRESHOLD = 0.05
-
 
 def add_goal_marker(viewer, goal_pos, radius=0.02):
     """
@@ -107,6 +106,13 @@ def main():
                 f"reward: {reward:.4f} | "
                 f"success: {info['is_success']}"
             )
+            if env.step_count % 100 == 0:
+                print(
+                    f"step={env.step_count} | "
+                    f"ctrl[0]={env.data.ctrl[0]: .3f} | "
+                    f"qpos_joint1={env.data.qpos[env.qpos_indices[0]]: .3f} | "
+                    f"qvel_joint1={env.data.qvel[env.qvel_indices[0]]: .3f}"
+                )
 
             # Sync viewer.
             viewer.sync()

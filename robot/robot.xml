@@ -99,23 +99,24 @@
 
   <!-- </actuator>  -->
 
-  <actuator> 
+  <!-- <actuator> -->
 
     <!-- Strong joints -->
-    <position joint="joint1" kp="150"/>
-    <position joint="joint2" kp="150"/>
-    <position joint="joint3" kp="150"/> 
+    <!-- <position joint="joint1" kp="150"/> -->
+    <!-- <position joint="joint2" kp="150"/> -->
+    <!-- <position joint="joint3" kp="150"/> -->
+    <!---->
 
     <!-- Wrist joints -->
-    <position joint="joint4" kp="80"/>
-    <position joint="joint5" kp="80"/>
-    <position joint="joint6" kp="80"/>
-
+    <!-- <position joint="joint4" kp="80"/> -->
+    <!-- <position joint="joint5" kp="80"/> -->
+    <!-- <position joint="joint6" kp="80"/> -->
+    <!---->
     <!-- Gripper -->
-    <position joint="gripper_left" kp="200"/>
-    <position joint="gripper_right" kp="200"/>
-  
-  </actuator>
+    <!-- <position joint="gripper_left" kp="200"/> -->
+    <!-- <position joint="gripper_right" kp="200"/> -->
+    <!---->
+  <!-- </actuator> -->
 
 
   <!-- <actuator>
@@ -133,5 +134,17 @@
 
   </actuator> -->
 
+<actuator>
+  <velocity joint="joint1" kv="6" />
+  <velocity joint="joint2" kv="6" />
+  <velocity joint="joint3" kv="6" />
+
+  <velocity joint="joint4" kv="3" />
+  <velocity joint="joint5" kv="3" />
+  <velocity joint="joint6" kv="3" />
+
+  <position joint="gripper_left" kp="5" />
+  <position joint="gripper_right" kp="5"/>
+</actuator>
   
 </mujoco>

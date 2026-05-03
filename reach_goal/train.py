@@ -18,29 +18,30 @@ from env import ReachEnv
 # -------------------------
 
 CONFIG = {
-    "run_name": "reach_goal/obs26/r030_thr005_finetune",
+    "run_name": "reach_goal/obs26/r020_thr005_finetune",
 
     "training": {
-        "learning_rate": 3e-5,      # fine-tuning
+        "learning_rate": 5e-5,      # fine-tuning
         "ent_coef": 0.0005,         # reduced exploration
         "clip_range": 0.1,
+        "target_kl": 0.015,
         "n_steps": 1280,
         "batch_size": 128,
-        "total_timesteps": 1000_000 },
+        "total_timesteps": 2000_000 },
 
     "env": {
         "max_steps": 500,
         "success_threshold": 0.05,
-        "goal_radius": 0.30,
+        "goal_radius": 1,
         "min_goal_distance": 0.08,
-        "min_lateral_distance" : 0.08
+        "min_lateral_distance" : 0.04
     },
 
     "seed": 42, # ****Most important parameter******
 
     # Load checkpoint if exists
     "load_model": True,
-    "model_path": "reach_goal/obs26/r030_thr005/best_model/best_model.zip"
+    "model_path": "reach_goal/obs26/r020_thr005_finetune/best_model/best_model.zip"
 }
 
 
@@ -114,6 +115,7 @@ def main():
         # Override params for fine-tuning
         ppo.learning_rate = config["training"]["learning_rate"]
         ppo.ent_coef = config["training"]["ent_coef"]
+        ppo.target_kl = config["training"]["target_kl"]
         ppo.clip_range = LinearSchedule(config["training"]["clip_range"], config["training"]["clip_range"],0)
 
         # Re-enable logging
@@ -129,6 +131,7 @@ def main():
             verbose=1,
             learning_rate=config["training"]["learning_rate"],
             ent_coef=config["training"]["ent_coef"],
+            target_kl=config["training"]["target_kl"],
             clip_range=config["training"]["clip_range"],
             n_steps=config["training"]["n_steps"],
             batch_size=config["training"]["batch_size"],

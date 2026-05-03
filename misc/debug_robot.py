@@ -5,10 +5,10 @@
 import mujoco
 import numpy as np
 
-from config import CONFIG
+from reach_goal.config import CONFIG
 
 
-MODEL_XML_PATH = "scene_with_objects.xml"
+MODEL_XML_PATH = "scenes/scene.xml"
 
 
 def safe_name(model, obj_type, obj_id):

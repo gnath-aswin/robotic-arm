@@ -75,7 +75,7 @@ class ReachEnv(gym.Env):
 
         self.goal: np.ndarray | None = None
         self.prev_distance: float | None = None
-        self.step_count = 0
+        self.step_count = 0 
 
         # --------------------------------------------------
         # Joint indexing
@@ -110,7 +110,7 @@ class ReachEnv(gym.Env):
         # --------------------------------------------------
         # Sampling space
         # --------------------------------------------------
-        self.goal_radius = 0.30
+        self.goal_radius = 0.20
         self.min_goal_distance = 0.08
         self.min_lateral_distance = 0.08
 
@@ -236,16 +236,13 @@ class ReachEnv(gym.Env):
         reward_precision = np.exp(-cfg["precision_exp_scale"] * distance)
 
         # Reward promoting base/joint1 movement -Viz shows it does not learn to rotate base.
-        base_angle_error = abs(self._get_base_angle_error())
-        if self.prev_base_angle_error is None:
-            self.prev_base_angle_error = base_angle_error
-        base_angle_progress = self.prev_base_angle_error - base_angle_error
-        reward_base_angle_progress = (
-            cfg.get("base_angle_progress_weight", 1.0)
-            * base_angle_progress
-        )
-        self.prev_base_angle_error = base_angle_error
-        
+        # base_angle_error = abs(self._get_base_angle_error())
+        # if self.prev_base_angle_error is None:
+        #     self.prev_base_angle_error = base_angle_error
+        # base_angle_progress = self.prev_base_angle_error - base_angle_error
+        # reward_base_angle_progress = cfg["base_angle_progress_weight"] * base_angle_progress
+        # self.prev_base_angle_error = base_angle_error
+        #
         # Success reward
         reward_success = 0.0
         if distance < self.success_threshold:
@@ -253,11 +250,11 @@ class ReachEnv(gym.Env):
 
         reward = (
             reward_distance
-            + reward_progress
-            + reward_base_angle_progress
-            + reward_action
-            + reward_precision
-            + reward_success
+                + reward_progress
+                # + reward_base_angle_progress
+                + reward_action
+                + reward_precision
+                + reward_success
         )
 
         self.prev_distance = distance
@@ -296,30 +293,10 @@ class ReachEnv(gym.Env):
 
     #     Curriculum based sampling goal
 
-    # def _sample_goal(self) -> np.ndarray:
-    #     ee_pos = self._get_ee_pos()
-    #
-    #     radius = 0.30
-    #
-    #     for _ in range(100):
-    #         offset = self.np_random.uniform(
-    #             low=np.array([-radius, -radius, -radius]),
-    #             high=np.array([radius, radius, radius]),
-    #         )
-    #
-    #         goal = ee_pos + offset
-    #         goal = np.clip(goal, self.workspace_min, self.workspace_max)
-    #
-    #         if np.linalg.norm(goal - ee_pos) > 0.07:
-    #             return goal.astype(np.float64)
-    #
-    #     return ee_pos.copy()
     def _sample_goal(self) -> np.ndarray:
         ee_pos = self._get_ee_pos()
 
-        radius = getattr(self, "goal_radius", 0.30)
-        min_goal_distance = getattr(self, "min_goal_distance", 0.07)
-        min_abs_y_offset = getattr(self, "min_lateral_distance", 0.08)
+        radius = 0.20
 
         for _ in range(100):
             offset = self.np_random.uniform(
@@ -327,37 +304,60 @@ class ReachEnv(gym.Env):
                 high=np.array([radius, radius, radius]),
             )
 
-            # 50% of episodes: force meaningful left/right displacement
-            if self.np_random.random() < 0.5:
-                sign = self.np_random.choice([-1.0, 1.0])
-                offset[1] = sign * self.np_random.uniform(min_abs_y_offset, radius)
-
             goal = ee_pos + offset
             goal = np.clip(goal, self.workspace_min, self.workspace_max)
 
-            if np.linalg.norm(goal - ee_pos) > min_goal_distance:
+            if np.linalg.norm(goal - ee_pos) > 0.07:
                 return goal.astype(np.float64)
 
-        # fallback: non-trivial workspace goal
-        goal = self.np_random.uniform(
-            low=self.workspace_min,
-            high=self.workspace_max,
-        )
-        return goal.astype(np.float64)
+        return ee_pos.copy()
+
+    # def _sample_goal(self) -> np.ndarray:
+    #     ee_pos = self._get_ee_pos()
+    #
+    #     radius = self.goal_radius 
+    #     min_goal_distance = self.min_goal_distance
+    #     min_abs_y_offset = self.min_lateral_distance
+    #
+    #     for _ in range(100):
+    #         offset = self.np_random.uniform(
+    #             low=np.array([-radius, -radius, -radius]),
+    #             high=np.array([radius, radius, radius]),
+    #         )
+    #
+    #         # 50% of episodes: force meaningful left/right displacement
+    #         if self.np_random.random() < 0.5:
+    #             sign = self.np_random.choice([-1.0, 1.0])
+    #             offset[1] = sign * self.np_random.uniform(min_abs_y_offset, radius)
+    #
+    #         goal = ee_pos + offset
+    #         goal = np.clip(goal, self.workspace_min, self.workspace_max)
+    #
+    #         if np.linalg.norm(goal - ee_pos) > min_goal_distance:
+    #             return goal.astype(np.float64)
+    #
+    #     # fallback: non-trivial workspace goal
+    #     goal = self.np_random.uniform(
+    #         low=self.workspace_min,
+    #         high=self.workspace_max,
+    #     )
+    #     return goal.astype(np.float64)
 
     # ======================================================
     # Robot control
     # ======================================================
 
     def _scale_action_to_joint_velocity(self, action: np.ndarray) -> np.ndarray:
-        action_scale = CONFIG["action_scale"]
-
-        joint_scale = np.array(
-            [1.0, 0.6, 0.6, 0.35, 0.35, 0.35],
-            dtype=np.float64,
-        )
-
-        return action * self.joint_max_vels * action_scale * joint_scale
+        # action_scale = CONFIG["action_scale"]
+        #
+        # joint_scale = np.array(
+        #     [1.0, 0.6, 0.6, 0.35, 0.35, 0.35],
+        #     dtype=np.float64,
+        # )
+        #
+        # return action * self.joint_max_vels * action_scale * joint_scale
+        ctrl_limit = np.array([2.0, 1.2, 1.2, 2.8, 2.8, 2.8], dtype=np.float64)
+        return action * ctrl_limit
 
     def _apply_joint_velocity(self, joint_vel_cmd: np.ndarray):
         self.data.ctrl[:self.num_joints] = joint_vel_cmd
@@ -390,7 +390,7 @@ class ReachEnv(gym.Env):
         self.data.qpos[self.qpos_indices] = mid_qpos
         self.data.qvel[self.qvel_indices] = 0.0
 
-        
+
     def _freeze_gripper_open(self):
         """
         Keep gripper open and immobile.
@@ -410,7 +410,7 @@ class ReachEnv(gym.Env):
         self.data.qpos[gripper_qpos_indices] = gripper_open_qpos
         self.data.qvel[gripper_qvel_indices] = 0.0
         self.data.ctrl[gripper_ctrl_indices] = gripper_open_ctrl   
-    
+
 
     # ======================================================
     # MuJoCo helpers
